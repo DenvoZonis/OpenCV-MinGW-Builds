@@ -1,13 +1,10 @@
-# OpenCV-MinGW-Builds
-The Builds of OpenCV with Windows and MinGW, support OpenCV version 4.12.0 and higher.
-
-Github Actions will check and build the latest version of OpenCV, and releases its `install` folder.
-
-compilation configures(only show edited):
+This my own custom builds(OpenCV version: 4.13.0-dev).Compared to the main branch, I have added the following compilation configuration:
 
 | Entity | Changes | interpretations |
 | --- | --- | --- |
-| `BUILD_EXAMPLES` | Enable | Build all examples |
-| `BUILD_opencv_world` | Enable | Include opencv_world module into the OpenCV build |
-| `CPU_DISPATCH` | Clear all values | Specify list of dispatched CPU optimizations |
-| `WITH_OPENGL` | Enable | Include OpenGL support |
+| `BUILD_CUDA_STUBS` | Enable | Build CUDA modules stubs when no CUDA SDK |
+| `OPENCV_DNN_OPENVINO` | Enable | Build with OpenVINO support(2021.4+) |
+| `OPENCV_ENABLE_NONFREE` | Enable | Enable non-free algorithms |
+| `OPENCV_TEST_DNN_OPENVINO` | Enable | Build test with OpenVINO code |
+| `WITH_OPENVINO` | Enable | Include Intel OpenVINO toolkit support |
+| `WITH_VULKAN` | Enable | Include Vulkan support |
