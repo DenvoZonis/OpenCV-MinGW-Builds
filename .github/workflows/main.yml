@@ -1,6 +1,6 @@
 name: Auto Build OpenCV MinGW Release
 
-on:
+于:
   schedule:
     - cron: "0 20 * * *"   # 每天4:00（北京时间）检查更新
   workflow_dispatch:       # 可手动触发
@@ -69,6 +69,8 @@ jobs:
                 -DCPU_DISPATCH="" `
                 -DWITH_OPENGL=ON `
                 -DBUILD_DOCS=OFF `
+                -DCMAKE_CXX_STANDARD=17 `
+                -DOPENCV_ENABLE_MEMALIGN=OFF `
                 -DOPENCV_EXTRA_MODULES_PATH=../opencv_contrib/modules `
                 ../opencv
           mingw32-make -j4
