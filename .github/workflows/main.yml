@@ -55,6 +55,48 @@ jobs:
           git clone --depth=1 --branch $tag https://github.com/opencv/opencv.git
           git clone --depth=1 --branch $tag https://github.com/opencv/opencv_contrib.git
 
+      - name: Patch MLAS for MinGW (replace posix_memalign with _aligned_malloc)
+        if: steps.check_release.outputs.skip == 'false'
+        run: |
+          $file = "opencv/3rdparty/mlas/lib/mlasi.h"
+          
+          if (-not (Test-Path $file)) {
+            Write-Host "mlasi.h not found - MLAS may not be present in this version, skipping patch."
+            exit 0
+          }
+          
+          $content = Get-Content $file -Raw
+          
+          if (-not $content.Contains('posix_memalign')) {
+            Write-Host "posix_memalign not found in mlasi.h - patch not needed or already applied."
+            exit 0
+          }
+          
+          # 使用字符串拼接构建 Patch 代码，完美规避 YAML 缩进限制
+          # 同时保留 int err 的声明，防止后续代码报变量未定义错误 (12 代表 ENOMEM)
+          $patched = "#ifdef _WIN32`n"
+          $patched += "    ptr = _aligned_malloc(size, ThreadedBufAlignment);`n"
+          $patched += "    int err = (ptr == nullptr) ? 12 : 0;`n"
+          $patched += "#else`n"
+          $patched += "    int err = posix_memalign(&ptr, ThreadedBufAlignment, size);`n"
+          $patched += "#endif"
+          
+          # 使用正则表达式替换单行，忽略空格差异，大幅提升鲁棒性
+          $newContent = $content -replace 'int\s+err\s*=\s*posix_memalign\s*\(&ptr,\s*ThreadedBufAlignment,\s*size\);', $patched
+          
+          if ($newContent -eq $content) {
+            Write-Error "Patch failed: posix_memalign string not matched. The MLAS source may have changed."
+            exit 1
+          }
+          
+          # 确保引入了 malloc.h (MinGW 环境调用 _aligned_malloc 的必须条件)
+          if (-not $newContent.Contains('<malloc.h>')) {
+            $newContent = "#include <malloc.h>`n" + $newContent
+          }
+          
+          Set-Content -Path $file -Value $newContent -NoNewline
+          Write-Host "MLAS patch applied successfully."
+
       - name: Configure & Build OpenCV (MinGW)
         if: steps.check_release.outputs.skip == 'false'
         run: |
@@ -70,7 +112,6 @@ jobs:
                 -DWITH_OPENGL=ON `
                 -DBUILD_DOCS=OFF `
                 -DCMAKE_CXX_STANDARD=17 `
-                -DOPENCV_DNN_MLAS=OFF `
                 -DOPENCV_EXTRA_MODULES_PATH=../opencv_contrib/modules `
                 ../opencv
           mingw32-make -j4
